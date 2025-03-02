@@ -1,0 +1,8 @@
+---
+- hosts: all
+  vars:
+    node_service_name: "go-zenon"
+  roles:
+    - role: manage_service
+      vars:
+        service_action: stopped 

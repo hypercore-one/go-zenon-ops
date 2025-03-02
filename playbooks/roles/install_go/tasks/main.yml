@@ -1,0 +1,72 @@
+---
+- name: Gather architecture information
+  setup:
+    filter: ansible_architecture
+
+- name: Set Go architecture mapping
+  set_fact:
+    go_arch_map:
+      x86_64: "amd64"
+      aarch64: "arm64"
+      armv7l: "armv6l"
+      armv6l: "armv6l"
+      arm64: "arm64"
+
+- name: Set Go architecture
+  set_fact:
+    go_arch: "{{ go_arch_map[ansible_architecture] | default('unsupported') }}"
+
+- name: Fail if architecture is unsupported
+  fail:
+    msg: "Unsupported architecture '{{ ansible_architecture }}'. Please update the go_arch_map."
+  when: go_arch == 'unsupported'
+
+- name: Set Go download URL
+  set_fact:
+    go_download_url: "https://go.dev/dl/go{{ go_version }}.linux-{{ go_arch }}.tar.gz"
+
+- name: Check if Go is already installed
+  stat:
+    path: /usr/local/go/bin/go
+  register: go_installed
+
+- name: Get installed Go version
+  command: /usr/local/go/bin/go version
+  register: installed_go_version
+  changed_when: false
+  failed_when: false
+  when: go_installed.stat.exists
+
+- name: Set installed Go version fact
+  set_fact:
+    installed_go_version_number: "{{ installed_go_version.stdout.split(' ')[2][2:] }}"
+  when: installed_go_version.stdout is defined
+
+- name: Debug installed Go version
+  debug:
+    msg: "Installed Go version: {{ installed_go_version_number | default('none') }}"
+
+- name: Remove old Go installation if version mismatch
+  file:
+    path: /usr/local/go
+    state: absent
+  when: go_installed.stat.exists and installed_go_version_number != go_version
+
+- name: Download Go binary
+  get_url:
+    url: "{{ go_download_url }}"
+    dest: "/tmp/go{{ go_version }}.tar.gz"
+  when: (not go_installed.stat.exists) or (installed_go_version_number != go_version)
+
+- name: Extract Go binary
+  unarchive:
+    src: "/tmp/go{{ go_version }}.tar.gz"
+    dest: /usr/local
+    remote_src: yes
+  when: (not go_installed.stat.exists) or (installed_go_version_number != go_version)
+
+- name: Ensure Go binary is in PATH
+  lineinfile:
+    path: /etc/profile.d/go.sh
+    line: 'export PATH=$PATH:/usr/local/go/bin'
+    create: yes 

@@ -1,0 +1,17 @@
+---
+- name: "{{ service_action | capitalize }} the {{ node_service_name }} service"
+  systemd:
+    name: "{{ node_service_name }}"
+    state: "{{ service_action }}"
+  when: service_action != "status"
+
+- name: Check status of the {{ node_service_name }} service
+  systemd:
+    name: "{{ node_service_name }}"
+  register: service_status
+  when: service_action == "status"
+
+- name: Display service status
+  debug:
+    msg: "Service {{ node_service_name }} is {{ 'running' if service_status.status.ActiveState == 'active' else 'not running' }}"
+  when: service_action == "status" 

@@ -1,0 +1,32 @@
+---
+- name: Install build dependencies
+  apt:
+    name:
+      - git
+      - make
+      - gcc
+      - jq
+    state: present
+    update_cache: yes
+
+- name: Clone node repository
+  git:
+    repo: "{{ node_repo }}"
+    dest: "/opt/{{ node_service_name }}"
+    version: "{{ node_branch }}"
+    force: yes
+
+- name: Build node binary
+  shell: |
+    export PATH=$PATH:/usr/local/go/bin
+    cd /opt/{{ node_service_name }}
+    GO111MODULE=on go build -o build/{{ node_binary }} ./cmd/{{ node_binary }}
+  args:
+    creates: "/opt/{{ node_service_name }}/build/{{ node_binary }}"
+
+- name: Copy binary to /usr/local/bin
+  copy:
+    src: "/opt/{{ node_service_name }}/build/{{ node_binary }}"
+    dest: "/usr/local/bin/{{ node_binary }}"
+    mode: '0755'
+    remote_src: yes 

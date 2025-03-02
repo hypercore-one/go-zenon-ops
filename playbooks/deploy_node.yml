@@ -1,0 +1,17 @@
+---
+- hosts: all
+  vars:
+    go_version: "1.23.0"
+    
+    # Node-specific variables (override these for different variants)
+    node_repo: "https://github.com/zenon-network/go-zenon.git"
+    node_branch: "master"
+    node_binary: "znnd" #znnd or hqzd
+    node_service_name: "go-zenon" #go-zenon or go-hyperqube
+  roles:
+    - install_go
+    - build_node
+    - create_service
+    - role: manage_service
+      vars:
+        service_action: started 

@@ -1,0 +1,4 @@
+all:
+  hosts:
+    172.245.234.143: #replace with node IP address
+      ansible_user: root
